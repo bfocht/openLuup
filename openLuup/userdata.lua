@@ -627,4 +627,3 @@ return {
   load  = load_user_data,
   save  = save_user_data,
 }
-

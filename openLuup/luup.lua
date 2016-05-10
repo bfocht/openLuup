@@ -67,6 +67,10 @@ local scenes = {}
 
 local remotes = {}
 
+local users = {}
+
+local weatherSettings = {}
+
 -----
 --
 -- GLOBAL functions: Luup API
@@ -672,6 +676,8 @@ return {
     rooms               = rooms,
     scenes              = scenes,
     devices             = devices, 
+    users               = users,
+    weatherSettings     = weatherSettings
 --    xj                  = "what is this?",
 
 }

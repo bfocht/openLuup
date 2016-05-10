@@ -76,6 +76,25 @@ local function categories_table (devices)
   return info
 end
 
+local function weather_table()
+  local info = {
+    weatherCountry = "UNITED STATES",
+    weatherCity = "Peoria, AZ",
+    tempFormat = "F",
+    }
+  return info
+end
+
+local function users_table()
+  local info = {}
+  info[1] = {
+     id=1,
+     Name="AAAA",
+     FirstName="BBBB"
+    }
+  return info
+end
+
 local function rooms_table ()
   local info = {}
   for i, name in pairs (luup.rooms) do
@@ -320,10 +339,14 @@ local function status_startup_table ()
     },
 ]]--
   for id, job in pairs (scheduler.job_list) do
+    local jobType = 'system'
+    if job.devNo then
+      jobType = "device_no_" .. job.devNo
+    end
     tasks[#tasks + 1] = {
       id = id,
       status = job.status,
-      type = job.type or ("device_no_" .. (job.devNo or '(system)')), 
+      type = job.type or jobType,
       comments = job.notes,
     }
   end
@@ -446,6 +469,10 @@ local function user_data (_,p)
       rooms = rooms_table(),
       scenes = user_scenes_table(),
       sections = sections_table(),
+      weatherSettings = weather_table(),
+      users= users_table(),
+      ExtraLuaFiles = {},
+      InstalledPlugins = {}
     }
     for a,b in pairs (userdata.attributes) do      -- add all the top-level attributes
       user_data2[a] = b
@@ -820,6 +847,7 @@ return {
   room                = room,
   scene               = scene,
   sdata               = sdata, 
+  static              = user_data,
   status              = status, 
   status2             = status, 
   user_data           = user_data, 
@@ -827,7 +855,7 @@ return {
   update_plugin       = update_plugin,      -- download latest plugin version
   variableget         = variableget, 
   variableset         = variableset,
-  
+
   -- openLuup specials
   altui               = altui,              -- download AltUI version from GitHub
   debug               = debug,              -- toggle debug flag

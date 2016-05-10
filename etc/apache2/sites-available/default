@@ -1,0 +1,41 @@
+<VirtualHost *:80>
+        ServerAdmin webmaster@localhost
+         SetEnv REMOTE_USER aaa
+
+        DocumentRoot /vera/www
+        <Directory />
+                Options FollowSymLinks
+                AllowOverride None
+        </Directory>
+        <Directory /vera/www/>
+                Options Indexes FollowSymLinks MultiViews
+                AllowOverride None
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        ScriptAlias /cgi-bin/ /vera/www/cgi-bin/
+        <Directory "/vera/www/cgi-bin/">
+                AllowOverride None
+                Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+                Order allow,deny
+                Allow from all
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+
+        ProxyPass /port_3480 http://localhost:3480
+        ProxyPassReverse /port_3480 http://localhost:3480
+
+        ProxyPass /port_3451 http://localhost:3451
+        ProxyPassReverse /port_3451 http://localhost:3451
+
+        ProxyPass /port_49451 http://localhost:49451
+        ProxyPassReverse /port_49451 http://localhost:49451
+
+        # Possible values include: debug, info, notice, warn, error, crit,
+        # alert, emerg.
+        LogLevel warn
+
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>

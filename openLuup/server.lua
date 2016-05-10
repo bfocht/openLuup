@@ -151,7 +151,7 @@ local function http_file (URL, headers)
     end
   
   else
-    _log ("file not found:" .. path, "openLuup.HTTP.FILE")  
+    _log ("file not found:" .. path, "openLuup.HTTP.FILE")
   end
   return info, response_type, chunked, response_headers
 end
@@ -335,6 +335,10 @@ local function client_request (sock)
   local function receive ()
     local method, path, major, minor        -- this is the structure of an HTTP request line
     local line, err = sock:receive()        -- read the request line
+    if line == "" then
+      --nothing to do
+      return "closed"
+    end
     if not err then  
       method, path, major, minor = line: match "^(%u+)%s+(.-)%s+HTTP/(%d)%.(%d)%s*$"
       _log ((path or line) .. ' ' .. tostring(sock))
@@ -354,10 +358,10 @@ local function client_request (sock)
           local length = tonumber(headers["Content-Length"]) or 0
           post_content, err = sock:receive(length)
         end
---        _log ("HTTP POST context : " .. json.encode(post_content))
+        -- _log ("HTTP POST context : " .. json.encode(post_content))
       else
         -- TODO: error response to client
-        _log ("Unsupported HTTP request:" .. method)
+        return ("Unsupported HTTP request:" .. line)
       end
     else
       sock: close ()

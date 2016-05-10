@@ -175,21 +175,55 @@ local function openLuup_logger (info)
 
   -- format and write log
   local function send (msg, subsystem_or_number, devNo)
-    msg = tostring (msg)
-    if msg: match "Wkflow %- Workflow: %d+%-%d+," then    -- copy AltUI Workflow message to altui log
-      altui.workflow (msg, subsystem_or_number, devNo)
+    local log_level = 50
+    if type (subsystem_or_number) == "number" then
+     log_level = subsystem_or_number 
+     subsystem_or_number = "luup_log"
+    else
+      subsystem_or_number = subsystem_or_number or "luup_log"
     end
-    subsystem_or_number = subsystem_or_number or 50
-    if type (subsystem_or_number) == "number" then subsystem_or_number = "luup_log" end
-    local now = formatted_time "%Y-%m-%d %H:%M:%S"
-    local message = table.concat {now, "   ",subsystem_or_number, ":", devNo or '', ": ", tostring(msg), '\n'}
+    local now = formatted_time "%m/%d/%y %H:%M:%S"
+    local vfmt = "%02d\t%s\t"
+    local log_header = vfmt: format (log_level, now)
+    local message = table.concat {log_header, subsystem_or_number, ":", devNo or '', ": ", tostring(msg), '\n'}
     write (message)
   end
-  
+
+  local function variable (var)
+    local now = formatted_time "%m/%d/%y %H:%M:%S"
+    local vfmt =   "%02d\t%s\tDevice_Variable::m_szValue_set device: %d service: %s " ..
+                    "variable: \027[35;1m%s\027[0m was: %s now: %s #hooks: %d \n"
+    local msg = vfmt: format (6, now, var.dev, var.srv, var.name,
+                var.old or "MISSING", var.value, #var.watchers)
+    write (msg)
+    return msg    -- for testing
+  end
+
+  local function scene (scn)
+    local now = formatted_time "%m/%d/%y %H:%M:%S"
+    local sfmt = "%02d\t%s Scene::RunScene running %d %s <%s>\n"
+    local msg = sfmt: format (8, now, scn.id, scn.name, "0x0")
+    write (msg)
+    return msg    -- for testing
+  end
+
+  local function workflow (wrk, level, dev)
+    local now = formatted_time "%m/%d/%y %H:%M:%S"
+    local sfmt = "%02d\t%s\tluup_log:%d: %s <%s>\n"
+    local msg = sfmt: format (level or 50, now, dev or 0, wrk or '?', "0x0")
+    write (msg)
+    return msg    -- for testing
+  end
+
   -- logfile init
   rotate_logs ()       -- save the old ones
   f = open_log ()      -- start anew
-  return {send = send}
+  return {
+    send = send,
+    variable = variable,
+    scene = scene,
+    workflow  = workflow
+  }
 end
 
 --
@@ -248,80 +282,10 @@ luup_log:216: ALTUI: Wkflow - Workflow: 0-3, Valid Transition found:Timer:5s, Ac
 
 --]]
 
-local function altui_logger (info)
-  local f
-  local logfile_name, maxLines = info.name, info.lines or 2000
-  local N = 0                                 -- current line number
-  local formatted_time = formatted_time
-    
-   -- open log  
-  local function open_log ()
-    local f = io.open (logfile_name, 'w') or dummy_io {}
-    f:setvbuf "line" 
-    return f
-  end
-  
-  -- rename old files
-  local function rotate_logs ()
-    os.rename (logfile_name, logfile_name.. ".1")
-  end
-  
-  local function write (message)
-    f:write (message)
-    N = N + 1
-    if (N % maxLines) == 0 then 
-      f: close ()
-      rotate_logs () 
-      f = open_log ()
-    end
-   end
-  
-  local function variable (var)
-    local now = formatted_time "%m/%d/%y %H:%M:%S"
-    local vfmt =   "%02d\t%s\tDevice_Variable::m_szValue_set device: %d service: %s " ..
-                    "variable: \027[35;1m%s\027[0m was: %s now: %s #hooks: %d \n"
-    local msg = vfmt: format (6, now, var.dev, var.srv, var.name, 
-                var.old or "MISSING", var.value, #var.watchers)
-    write (msg)
-    return msg    -- for testing
-  end
-  
-  local function scene (scn)
-    local now = formatted_time "%m/%d/%y %H:%M:%S"
-    local sfmt = "%02d\t%s Scene::RunScene running %d %s <%s>\n"
-    local msg = sfmt: format (8, now, scn.id, scn.name, "0x0")
-    write (msg)
-    return msg    -- for testing
-  end
-  
-  local function workflow (wrk, level, dev)
-    local now = formatted_time "%m/%d/%y %H:%M:%S"
-    local sfmt = "%02d\t%s\tluup_log:%d: %s <%s>\n"
-    local msg = sfmt: format (level or 50, now, dev or 0, wrk or '?', "0x0")
-    write (msg)
-    return msg    -- for testing
-  end
-  
-  -- altui_logger init ()
-  
-  rotate_logs ()       -- save the old ones
-  f = open_log ()      -- start anew
-  return {
-    scene     = scene,
-    variable  = variable,
-    workflow  = workflow,
-  }
-end
-
-
 -- INIT
 
--- altui log (for variable and scene history)
--- note that altui reads from /var/log/cmh/LuaUPnP.log
-local altui  = altui_logger {name = "/var/log/cmh/LuaUPnP.log", lines = 5000}
-
 -- openLuup log
-local normal = openLuup_logger {name = "LuaUPnP.log", versions = 5, lines =2000, altui = altui}
+local normal = openLuup_logger {name = "/var/log/cmh/LuaUPnP.log", versions = 5, lines =2000}
 
 -- display module banner
 local function banner (ABOUT)
@@ -333,14 +297,14 @@ end
 
 return {
   ABOUT = ABOUT,
-  
+
   banner          = banner,
   send            = normal.send,
-  altui_variable  = altui.variable,
-  altui_scene     = altui.scene,
+  altui_variable  = normal.variable,
+  altui_scene     = normal.scene,
   -- for testing
-  openLuup_logger = openLuup_logger,
-  altui_logger    = altui_logger,
-  }
+  openLuup_logger = openLuup_logger
+}
+
 
 ----
