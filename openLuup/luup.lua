@@ -38,8 +38,15 @@ local function log (msg, level)
   logs.send (msg, level, scheduler.current_device())
 end
 
+
 --  local log
-local function _log (msg, name) log (msg, name or ABOUT.NAME) end
+local function _log (msg, level, name)
+  if name ~= nil then
+    logs.send (msg, level, name or ABOUT.NAME)
+  else
+    logs.send (msg, 10, name or ABOUT.NAME)
+  end
+end
 
 logs.banner (ABOUT)   -- for version control
 
@@ -541,10 +548,10 @@ local function compile_and_run (lua, name)
   local code, error_msg = 
     loader.compile_lua (source, name, startup_env) -- load, compile, instantiate
   if not code then 
-    _log (error_msg, name) 
+    _log (error_msg, 01, name)
   else
     local ok, err = scheduler.context_switch (nil, code[name])  -- no device context
-    if not ok then _log ("ERROR: " .. err, name) end
+    if not ok then _log ("ERROR: " .. err, 01, name) end
     code[name] = nil      -- remove it from the name space
   end
 end

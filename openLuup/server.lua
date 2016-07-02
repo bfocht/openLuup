@@ -41,7 +41,7 @@ local mime      = require "openLuup.mimetypes"
 local vfs       = require "openLuup.virtualfilesystem"
 
 --  local log
-local function _log (msg, name) logs.send (msg, name or ABOUT.NAME) end
+local function _log (msg, name) logs.send (msg, 10, name or ABOUT.NAME) end
 
 logs.banner (ABOUT)   -- for version control
 
@@ -365,7 +365,7 @@ local function client_request (sock)
       end
     else
       sock: close ()
-      _log (("receive error: %s %s"): format (err or '?', tostring (sock)))
+      -- _log (("receive error: %s %s"): format (err or '?', tostring (sock)))
     end
     return err
   end
